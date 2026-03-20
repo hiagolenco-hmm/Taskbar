@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tarefas - Outro Nível</title>
+    
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📝</text></svg>">
+
     <style>
         :root {
             --primary: #6200ee;
@@ -131,7 +134,6 @@
             transition: 0.2s;
         }
 
-        /* Indicador de edição no hover */
         .task-text:not(.completed):hover {
             background: #f0f7ff;
         }
@@ -148,6 +150,7 @@
             border-radius: 4px;
             font-size: 16px;
             font-family: inherit;
+            outline: none;
         }
 
         .task-item input[type="checkbox"] { 
@@ -159,14 +162,13 @@
         .completed { text-decoration: line-through; color: #aaa; }
 
         .delete-task {
-            position: absolute;
-            right: 10px;
             color: #ddd;
             cursor: pointer;
             font-weight: bold;
             font-size: 14px;
             opacity: 0;
             transition: 0.2s;
+            padding: 5px;
         }
 
         .task-item:hover .delete-task { opacity: 1; }
@@ -282,9 +284,8 @@
         save();
     }
 
-    // NOVA FUNÇÃO: Transforma o texto em input para editar
     function editTask(index, spanElement) {
-        if (db[currentTab][index].done) return; // Não edita tarefa concluída
+        if (db[currentTab][index].done) return;
 
         const currentText = db[currentTab][index].text;
         const input = document.createElement('input');
@@ -298,7 +299,7 @@
                 db[currentTab][index].text = newText;
                 save();
             } else {
-                render(); // Cancela ou mantém igual
+                render(); 
             }
         };
 
@@ -313,16 +314,25 @@
     }
 
     function render() {
+        // Renderizar Abas
         const tabsHeader = document.getElementById('tabsHeader');
         tabsHeader.innerHTML = '';
         Object.keys(db).forEach(tabName => {
             const wrapper = document.createElement('div');
             wrapper.className = 'tab-wrapper';
-            wrapper.innerHTML = `
-                <button class="tab-btn ${tabName === currentTab ? 'active' : ''}" 
-                        onclick="currentTab='${tabName}'; render();">${tabName}</button>
-                <span class="delete-tab" onclick="deleteTab('${tabName}', event)">✕</span>
-            `;
+            
+            const btn = document.createElement('button');
+            btn.className = `tab-btn ${tabName === currentTab ? 'active' : ''}`;
+            btn.innerText = tabName;
+            btn.onclick = () => { currentTab = tabName; render(); };
+
+            const delTab = document.createElement('span');
+            delTab.className = 'delete-tab';
+            delTab.innerText = '✕';
+            delTab.onclick = (e) => deleteTab(tabName, e);
+
+            wrapper.appendChild(btn);
+            wrapper.appendChild(delTab);
             tabsHeader.appendChild(wrapper);
         });
 
@@ -332,6 +342,7 @@
         addTabBtn.onclick = createTab;
         tabsHeader.appendChild(addTabBtn);
 
+        // Renderizar Lista de Tarefas (Usando appendChild para manter eventos vivos)
         const list = document.getElementById('taskList');
         list.innerHTML = '';
         const tasks = db[currentTab] || [];
@@ -342,21 +353,28 @@
             const li = document.createElement('li');
             li.className = 'task-item';
             
-            // Cria o span da tarefa separadamente para vincular o clique de editar
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = task.done;
+            checkbox.onchange = () => toggleTask(index);
+
             const span = document.createElement('span');
             span.className = `task-text ${task.done ? 'completed' : ''}`;
             span.innerText = task.text;
             span.onclick = () => editTask(index, span);
 
-            li.innerHTML = `
-                <input type="checkbox" ${task.done ? 'checked' : ''} onchange="toggleTask(${index})">
-            `;
+            const delBtn = document.createElement('span');
+            delBtn.className = 'delete-task';
+            delBtn.innerText = '✕';
+            delBtn.onclick = () => removeTask(index);
+
+            li.appendChild(checkbox);
             li.appendChild(span);
-            li.innerHTML += `<span class="delete-task" onclick="removeTask(${index})">✕</span>`;
-            
+            li.appendChild(delBtn);
             list.appendChild(li);
         });
 
+        // Barra de Progresso
         const total = tasks.length;
         const porcentagem = total === 0 ? 0 : Math.round((concluidas / total) * 100);
         const bar = document.getElementById('progressBar');
